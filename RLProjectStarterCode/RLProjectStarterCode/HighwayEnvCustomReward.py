@@ -6,44 +6,46 @@ from highway_env.envs.common.action import Action
 class HighwayEnvFastCustomReward(HighwayEnvFast):
     def _reward(self, action: Action) -> float:
         """
-        Custom reward function to encourage safety, efficiency, and optimal driving behavior.
+        custom reward function to encourage safety, efficiency, and optimal driving behavior.
         :param action: the last action performed
         :return: the computed reward value (float)
         """
         reward = 0.0
 
-        # reward for safty: penalty for collisions
+        # safety: penalty for collisions
         if self.vehicle.crashed:
-            reward -= 10  # I start with a big penalty for collisions for the beginning
+            reward -= 10.0  # large penalty for collisions
 
         # efficiency: reward for driving at desired speeds
         speed = self.vehicle.speed
-        min_speed, max_speed = self.config["reward_speed_range"]  #reward_speed_range
+        min_speed, max_speed = self.config["reward_speed_range"]
         if min_speed <= speed <= max_speed:
-            reward += 1.0  # reward for being within the desired speed range
+            reward += (speed - min_speed) / (max_speed - min_speed)  # scaled reward for staying in the range
         else:
-            reward -= 1.0  # penalty for being outside the desired range
+            reward -= 2.0  # higher penalty for being outside the range
 
-        # lane change : Reward for driving in righ most lanes
-        # using the lane index directly from the vehicle
+        # lane discipline: reward for staying in rightmost lanes
         if self.vehicle.lane_index is not None:
-            lane_index = self.vehicle.lane_index[2]  # extracting the actual lane index (tuple format: (road, lane, index))
-            if lane_index == 0:  # right lane
-                reward += 1.0
+            lane_index = self.vehicle.lane_index[2]  # extracting the actual lane index
+            if lane_index == 0:  # rightmost lane
+                reward += 2.0
             elif lane_index == 1:  # middle lane
-                reward += 0.5
+                reward += 1.0
             else:  # left lane
-                reward += 0.1
+                reward -= 0.5  # small penalty for leftmost lane to encourage right-lane preference
 
-        # saftey : Penalize unsafe distances to other vehicles
+        # safety: penalize unsafe distances to other vehicles
         for neighbor in self.vehicle.road.vehicles:
             if neighbor is not self.vehicle:
                 distance = np.linalg.norm(self.vehicle.position - neighbor.position)
-                if distance < self.config["ego_spacing"]:  # penalty for being too close
-                    reward -= 1.0
+                if distance < self.config["ego_spacing"]:
+                    reward -= 5.0 / (distance + 1e-5)  # heavier penalty for closer proximity
 
-        # Off-road driving: Penalize for leaving the road
+        # off-road driving: penalize for leaving the road
         if not self.vehicle.on_road:
-            reward -= 5.0
+            reward -= 5.0  # penalty for being off-road
+
+        # normalize the total reward to keep it within a consistent range
+        reward = np.clip(reward, -10.0, 10.0)
 
         return reward
