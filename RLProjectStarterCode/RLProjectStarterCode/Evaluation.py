@@ -12,19 +12,18 @@ register(
 env = gymnasium.make('CustomRewardEnv', render_mode='rgb_array')
 
 # making sure to update the environment configuration to match the training configuration!
-env.config["lanes_count"] = 5  # Change the number of lanes to make environment more complex
-env.config["vehicles_count"] = 60  # Increase the number of vehicles to make environment more complex
-env.config[
-    "duration"] = 1000  # Increase the duration of the simulation to see how the agent behaves over a longer period
+env.unwrapped.config["lanes_count"] = 4  # Increase the number of lanes
+env.unwrapped.config["vehicles_count"] = 60  # Increase the number of vehicles
+env.unwrapped.config["duration"] = 1000  # Extend the simulation duration
 
 pprint.pprint(env.unwrapped.config)
 
 # Loaloading and test saved model
-model = DQN.load("highway_dqn/model")
+model = DQN.load("./logs/rl_model_dqn_2000_steps.zip")
 while True:  # running the simulation indefinitely
     done = truncated = False  # reseting the done and truncated flags to False
     obs, info = env.reset()  # reseting the environment and get the initial observation
-    while not (done or truncated):  #  the simulation until done or truncated
+    while not (done or truncated):  # the simulation until done or truncated
         action, _states = model.predict(obs,
                                         deterministic=True)  # getting the action from the model, without exploration (deterministic)
         obs, reward, done, truncated, info = env.step(action)  # performong the action in the environment

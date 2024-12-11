@@ -2,20 +2,20 @@ import numpy as np
 from highway_env.envs import HighwayEnvFast
 from highway_env.envs.common.action import Action
 
-# Updated reward parameters
-collision_penalty = -25.0
-speed_penalty_outside_range = -1.0
-rightmost_lane_reward = 0.01
-middle_lane_reward = 0.004
-leftmost_lane_penalty = 0.0
-unsafe_distance_penalty = -10.0
-off_road_penalty = -15.0
-safe_lane_change_reward = 5.0
-slowing_down_reward = 3.0
-passing_vehicle_reward = 7.0
-time_efficiency_reward = 1.0
-reward_min = -30.0
-reward_max = 15.0
+# Adjusted reward parameters
+collision_penalty = -30.0
+speed_penalty_outside_range = -2.0
+rightmost_lane_reward = 0.02
+middle_lane_reward = 0.01
+leftmost_lane_penalty = -0.01
+unsafe_distance_penalty = -15.0
+off_road_penalty = -20.0
+safe_lane_change_reward = 7.0
+slowing_down_reward = 5.0
+passing_vehicle_reward = 10.0
+time_efficiency_multiplier = 1.5
+reward_min = -50.0
+reward_max = 20.0
 
 class HighwayEnvFastCustomReward(HighwayEnvFast):
     def _reward(self, action: int) -> float:
@@ -60,7 +60,7 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
     def _speed_reward(self, speed):
         min_speed, max_speed = self.config["reward_speed_range"]
         if min_speed <= speed <= max_speed:
-            return (speed - min_speed) / (max_speed - min_speed)
+            return 2 * ((speed - min_speed) / (max_speed - min_speed))  # Amplify reward for optimal speed
         return speed_penalty_outside_range
 
     def _lane_reward(self, lane_index):
@@ -68,7 +68,9 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
             return rightmost_lane_reward
         elif lane_index == 1:
             return middle_lane_reward
-        return leftmost_lane_penalty
+        elif lane_index == 2:  # Slight penalty for being in leftmost lane (e.g., slow lane in some countries)
+            return leftmost_lane_penalty
+        return 0.0
 
     def _evaluate_surroundings(self, action):
         reward = 0.0
@@ -95,7 +97,7 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
         return reward
 
     def _time_efficiency_reward(self):
-        return time_efficiency_reward * (1.0 - (self.time / self.config["duration"]))
+        return time_efficiency_multiplier * (1.0 - (self.time / self.config["duration"]))
 
     def _log_reward_components(self, reward):
         self.reward_log = {

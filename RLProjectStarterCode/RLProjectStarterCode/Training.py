@@ -1,9 +1,9 @@
 import pprint
+
 import gymnasium
 from gymnasium import register
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
-from HighwayEnvCustomReward import HighwayEnvFastCustomReward  # Ensure this matches your file structure
 
 # saving a checkpoint every 1000 steps
 checkpoint_callback = CheckpointCallback(
@@ -21,13 +21,12 @@ env = gymnasium.make('CustomRewardEnv', render_mode='human')
 
 # optionally configure the environment for increased complexity
 #  these lines to test with different configurations
-env.unwrapped.config["lanes_count"] = 4  # Increase the number of lanes
-env.unwrapped.config["vehicles_count"] = 60  # Increase the number of vehicles
+env.unwrapped.config["lanes_count"] = 4 # Increase the number of lanes
+env.unwrapped.config["vehicles_count"] = 100  # Increase the number of vehicles
 env.unwrapped.config["duration"] = 1000  # Extend the simulation duration
 
 # printing environment configuration for debugging
 pprint.pprint(env.unwrapped.config)
-
 
 model = DQN(
     'MlpPolicy',
@@ -37,7 +36,7 @@ model = DQN(
     buffer_size=15000,
     learning_starts=200,
     batch_size=32,
-    gamma=0.75,  # Increased discount factor for better long-term planning
+    gamma=0.6,  # Increased discount factor for better long-term planning
     train_freq=4,  # Increased training frequency
     gradient_steps=1,
     target_update_interval=50,
