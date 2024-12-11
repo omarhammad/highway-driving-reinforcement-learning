@@ -28,17 +28,17 @@ env.unwrapped.config["duration"] = 1000  # Extend the simulation duration
 # printing environment configuration for debugging
 pprint.pprint(env.unwrapped.config)
 
-# train a DQN model using the custom reward function
+
 model = DQN(
     'MlpPolicy',
     env,
     policy_kwargs=dict(net_arch=[256, 256]),
-    learning_rate=5e-4,
+    learning_rate=3e-4,  # Adjusted learning rate
     buffer_size=15000,
     learning_starts=200,
     batch_size=32,
-    gamma=0.8,
-    train_freq=1,
+    gamma=0.75,  # Increased discount factor for better long-term planning
+    train_freq=4,  # Increased training frequency
     gradient_steps=1,
     target_update_interval=50,
     verbose=1,
@@ -46,7 +46,7 @@ model = DQN(
 )
 
 # trian the model and save checkpoints
-model.learn(int(2e4), callback=checkpoint_callback)
+model.learn(int(5e4), callback=checkpoint_callback)  # Train for 50,000 steps
 
 # save the final trained model
 model.save("highway_dqn/model")
