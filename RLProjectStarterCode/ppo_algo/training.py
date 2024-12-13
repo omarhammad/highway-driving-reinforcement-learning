@@ -26,8 +26,7 @@ env.unwrapped.config.update({
 pprint.pprint(env.unwrapped.config)
 
 # Model path
-model_path = "logs/rl_model_ppo"
-
+model_path = "logs/rl_model_ppo_14000_steps"
 # Check if a saved model exists
 if os.path.exists(model_path + ".zip"):
     print("Loading existing model...")
