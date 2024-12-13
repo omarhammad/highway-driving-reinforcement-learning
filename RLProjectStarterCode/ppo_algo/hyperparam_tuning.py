@@ -1,5 +1,4 @@
 from itertools import product
-
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -13,7 +12,7 @@ register(
     entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',
 )
 
-def perform_grid_search(env, param_grid, total_timesteps=10000, eval_episodes=5):
+def perform_grid_search(env, param_grid, total_timesteps=5000, eval_episodes=3, early_stopping_reward=20.0):
     # Generate combinations of hyperparameters
     param_combinations = list(product(*param_grid.values()))
 
@@ -27,20 +26,20 @@ def perform_grid_search(env, param_grid, total_timesteps=10000, eval_episodes=5)
         model = PPO(
             "MlpPolicy",
             env,
-            policy_kwargs=dict(net_arch=dict(pi=[256, 256], vf=[256, 256])),
-            n_steps=512,
+            policy_kwargs=dict(net_arch=dict(pi=[128, 128], vf=[128, 128])),  # Simplified network
+            n_steps=256,
             batch_size=batch_size,
-            n_epochs=20,
+            n_epochs=10,
             learning_rate=learning_rate,
             gamma=gamma,
-            verbose=1,
-            tensorboard_log="highway_ppo/",
+            verbose=0,
+            tensorboard_log=None,
             device="cuda" if torch.cuda.is_available() else "cpu",
         )
 
-        # Train the model for a short duration to evaluate performance
+        # Train the model for a shorter duration
         model.learn(total_timesteps=total_timesteps)
-        mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=eval_episodes)
+        mean_reward, _ = evaluate_policy(model, env, n_eval_episodes=eval_episodes, render=False)  # Disable rendering
 
         # Track best configuration
         if mean_reward > best_reward:
@@ -49,12 +48,17 @@ def perform_grid_search(env, param_grid, total_timesteps=10000, eval_episodes=5)
 
         print(f"Mean reward: {mean_reward}")
 
+        # Early stopping if reward exceeds the threshold
+        if mean_reward >= early_stopping_reward:
+            print("Early stopping triggered.")
+            break
+
     print(f"Best params: {best_params}, Best reward: {best_reward}")
     return best_params, best_reward
 
 if __name__ == "__main__":
-    # Create the environment
-    env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
+    # Create the environment without rendering
+    env = gymnasium.make("HighwayFastCustomReward-v0", render_mode=None)
 
     # Configure the environment
     env.unwrapped.config.update({
