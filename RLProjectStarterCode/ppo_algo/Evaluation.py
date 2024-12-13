@@ -1,30 +1,37 @@
 import pprint
-
 import gymnasium
 import highway_env
 from gymnasium import register
-from stable_baselines3 import DQN
+from stable_baselines3 import PPO  # Updated to PPO for evaluation
 
+# Register the custom environment
 register(
     id='CustomRewardEnv',
     entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',
 )
+
+# Create the environment
 env = gymnasium.make('CustomRewardEnv', render_mode='rgb_array')
 
-# making sure to update the environment configuration to match the training configuration!
-env.unwrapped.config["lanes_count"] = 4  # Increase the number of lanes
-env.unwrapped.config["vehicles_count"] = 60  # Increase the number of vehicles
-env.unwrapped.config["duration"] = 1000  # Extend the simulation duration
-
+# Update the environment configuration to match the training configuration
+env.unwrapped.config.update({
+    "lanes_count": 4,  # Number of lanes
+    "vehicles_count": 60,  # Number of vehicles
+    "duration": 1000,  # Simulation duration
+    "reward_speed_range": [20, 30],
+    "safe_passing_range": [5.0, 15.0],
+    "ego_spacing": 5.0,
+})
 pprint.pprint(env.unwrapped.config)
 
-# Loaloading and test saved model
-model = DQN.load("./logs/rl_model_dqn_2000_steps.zip")
-while True:  # running the simulation indefinitely
-    done = truncated = False  # reseting the done and truncated flags to False
-    obs, info = env.reset()  # reseting the environment and get the initial observation
-    while not (done or truncated):  # the simulation until done or truncated
-        action, _states = model.predict(obs,
-                                        deterministic=True)  # getting the action from the model, without exploration (deterministic)
-        obs, reward, done, truncated, info = env.step(action)  # performong the action in the environment
-        env.render()  # rendering the environment
+# Load the trained PPO model
+model = PPO.load("./logs/rl_model_ppo_8000_steps.zip")  # Adjust path if needed
+
+# Run the evaluation
+while True:  # Run the simulation indefinitely
+    done = truncated = False  # Reset the done and truncated flags
+    obs, info = env.reset()  # Reset the environment and get the initial observation
+    while not (done or truncated):  # Continue the simulation until done or truncated
+        action, _states = model.predict(obs, deterministic=True)  # Predict action without exploration (deterministic)
+        obs, reward, done, truncated, info = env.step(action)  # Perform the action in the environment
+        env.render()  # Render the environment

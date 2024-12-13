@@ -25,10 +25,10 @@ env.unwrapped.config.update({
 })
 pprint.pprint(env.unwrapped.config)
 
-# Model path
-model_path = "logs/rl_model_ppo_3000_steps"
+# PPO Training
+model_path = "logs/rl_model_ppo_20000_steps"
 if os.path.exists(model_path + ".zip"):
-    print(f"Loading existing model({model_path.split('/')[1]})...")
+    print(f"Loading existing model ({model_path})...")
     model = PPO.load(model_path, env=env, device="cuda")
     reset_timesteps = False
 else:
@@ -36,30 +36,28 @@ else:
     model = PPO(
         "MlpPolicy",
         env,
-        policy_kwargs=dict(net_arch=dict(pi=[256, 256, 128], vf=[256, 256, 128])),
-        n_steps=1024,
-        batch_size=512,  # Replace with the best batch size
-        n_epochs=20,
-        learning_rate=1e-4,  # Replace with the best learning rate
-        gamma=0.98,  # Replace with the best gamma
-        verbose=1,
-        tensorboard_log="final_training_logs/",
+        policy_kwargs=dict(net_arch=[dict(pi=[256, 256], vf=[256, 256])]),
+        n_steps=64 * 12 // 6,  # Batch size of 64 and 6 parallel environments
+        batch_size=64,
+        n_epochs=10,
+        learning_rate=5e-4,
+        gamma=0.8,
+        verbose=2,
+        tensorboard_log="highway_ppo/",
         device="cuda",
     )
     reset_timesteps = True
 
-# Save checkpoints during training
+# Checkpoint Callback
 checkpoint_callback = CheckpointCallback(
     save_freq=1000, save_path="./logs/", name_prefix="rl_model_ppo"
 )
 
 # Train the model
-model.learn(total_timesteps=100000, callback=checkpoint_callback, reset_num_timesteps=reset_timesteps)
+model.learn(total_timesteps=int(2e4), callback=checkpoint_callback, reset_num_timesteps=reset_timesteps)
 
 # Save the final model
 model.save(model_path)
 
 # Close the environment
 env.close()
-
-# tensorboard --logdir=highway_ppo/
