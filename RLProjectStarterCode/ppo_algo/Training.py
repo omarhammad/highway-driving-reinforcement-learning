@@ -26,26 +26,27 @@ env.unwrapped.config.update({
 pprint.pprint(env.unwrapped.config)
 
 # Model path
-model_path = "logs/rl_model_ppo_14000_steps"
-# Check if a saved model exists
+model_path = "logs/rl_model_ppo_3000_steps"
 if os.path.exists(model_path + ".zip"):
-    print("Loading existing model...")
+    print(f"Loading existing model({model_path.split('/')[1]})...")
     model = PPO.load(model_path, env=env, device="cuda")
+    reset_timesteps = False
 else:
     print("No saved model found. Starting training from scratch...")
     model = PPO(
         "MlpPolicy",
         env,
-        policy_kwargs=dict(net_arch=dict(pi=[256, 256], vf=[256, 256])),
+        policy_kwargs=dict(net_arch=dict(pi=[256, 256, 128], vf=[256, 256, 128])),
         n_steps=1024,
-        batch_size=256,
+        batch_size=512,  # Replace with the best batch size
         n_epochs=20,
-        learning_rate=5e-5,
-        gamma=0.95,
+        learning_rate=1e-4,  # Replace with the best learning rate
+        gamma=0.98,  # Replace with the best gamma
         verbose=1,
-        tensorboard_log="highway_ppo/",
+        tensorboard_log="final_training_logs/",
         device="cuda",
     )
+    reset_timesteps = True
 
 # Save checkpoints during training
 checkpoint_callback = CheckpointCallback(
@@ -53,7 +54,7 @@ checkpoint_callback = CheckpointCallback(
 )
 
 # Train the model
-model.learn(total_timesteps=100000, callback=checkpoint_callback)
+model.learn(total_timesteps=100000, callback=checkpoint_callback, reset_num_timesteps=reset_timesteps)
 
 # Save the final model
 model.save(model_path)
@@ -61,4 +62,4 @@ model.save(model_path)
 # Close the environment
 env.close()
 
-#tensorboard --logdir=highway_ppo/
+# tensorboard --logdir=highway_ppo/
