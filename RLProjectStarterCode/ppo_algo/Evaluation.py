@@ -6,27 +6,27 @@ from stable_baselines3 import PPO  # Updated to PPO for evaluation
 
 # Register the custom environment
 register(
-    id='CustomRewardEnv',
+    id='HighwayFastCustomReward-v0',
     entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',
 )
 
 # Create the environment
-env = gymnasium.make('CustomRewardEnv', render_mode='rgb_array')
+env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
 
-# Update the environment configuration to match the training configuration
 # Configure the environment
 env.unwrapped.config.update({
-    "lanes_count": 4,
-    "vehicles_count": 70,
-    "duration": 1000,
-    "reward_speed_range": [20, 30],
-    "safe_passing_range": [5.0, 15.0],
-    "ego_spacing": 5.0,
+    "lanes_count": 4,  # Number of lanes
+    "vehicles_count": 100,  # Ensure a high number of vehicles
+    "controlled_vehicles": 1,  # Number of ego vehicles
+    "duration": 1000,  # Episode duration
+    "reward_speed_range": [20, 30],  # Speed reward range
+    "vehicles_density": 1.0,  # Increase density for more consistent presence
+    "spawn_probability": 1.0,  # Ensure continuous vehicle spawning
 })
-pprint.pprint(env.unwrapped.config)
 
+pprint.pprint(env.unwrapped.config)
 # Load the trained PPO model
-model = PPO.load("./logs/rl_model_ppo_20000_steps.zip")  # Adjust path if needed
+model = PPO.load("./logs/rl_model_ppo_7000_steps.zip")  # Adjust path if needed
 
 # Run the evaluation for a limited number of episodes
 episode_count = 10
