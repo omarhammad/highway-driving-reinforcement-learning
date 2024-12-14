@@ -5,50 +5,54 @@ from gymnasium import register
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
 
-# saving a checkpoint every 1000 steps
-checkpoint_callback = CheckpointCallback(
-    save_freq=1000, save_path='./logs/', name_prefix='rl_model_dqn'
-)
 
-# registering the custom environment with the custom reward function
+# Register the custom environment
 register(
-    id='CustomRewardEnv',
+    id='HighwayFastCustomReward-v0',
     entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',
 )
 
-# using the custom environment with rendering
-env = gymnasium.make('CustomRewardEnv', render_mode='human')
+# Create the environment
+env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
 
-# optionally configure the environment for increased complexity
-#  these lines to test with different configurations
-env.unwrapped.config["lanes_count"] = 4 # Increase the number of lanes
-env.unwrapped.config["vehicles_count"] = 100  # Increase the number of vehicles
-env.unwrapped.config["duration"] = 1000  # Extend the simulation duration
+# Configure the environment
+env.unwrapped.config.update({
+    "lanes_count": 4,  # Number of lanes
+    "vehicles_count": 100,  # Ensure a high number of vehicles
+    "controlled_vehicles": 1,  # Number of ego vehicles
+    "duration": 1000,  # Episode duration
+    "reward_speed_range": [20, 30],  # Speed reward range
+    "vehicles_density": 1.0,  # Increase density for more consistent presence
+    "spawn_probability": 1.0,  # Ensure continuous vehicle spawning
+})
 
-# printing environment configuration for debugging
 pprint.pprint(env.unwrapped.config)
 
 model = DQN(
-    'MlpPolicy',
+    "MlpPolicy",
     env,
     policy_kwargs=dict(net_arch=[256, 256]),
-    learning_rate=3e-4,  # Adjusted learning rate
+    learning_rate=5e-4,
     buffer_size=15000,
     learning_starts=200,
     batch_size=32,
-    gamma=0.6,  # Increased discount factor for better long-term planning
-    train_freq=4,  # Increased training frequency
+    gamma=0.8,
+    train_freq=1,
     gradient_steps=1,
     target_update_interval=50,
     verbose=1,
-    tensorboard_log="highway_dqn/"
+    tensorboard_log="highway_dqn/",
+)
+# Checkpoint Callback
+checkpoint_callback = CheckpointCallback(
+    save_freq=1000, save_path="./logs/", name_prefix="rl_model_dqn"
 )
 
-# trian the model and save checkpoints
-model.learn(int(5e4), callback=checkpoint_callback)  # Train for 50,000 steps
+# Train the model
+model.learn(total_timesteps=int(2e4), callback=checkpoint_callback)
 
-# save the final trained model
+# Save the final model
 model.save("highway_dqn/model")
 
-# close the environment after training
+# Close the environment
 env.close()

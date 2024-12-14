@@ -5,6 +5,12 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
 import os
 import time
+import torch
+
+# Check GPU availability
+print(f"Using device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
 
 # Register the custom environment
 register(
@@ -40,13 +46,14 @@ else:
         "MlpPolicy",
         env,
         policy_kwargs=dict(net_arch=[dict(pi=[256, 256], vf=[256, 256])]),
-        n_steps=64 * 12 // 6,
-        batch_size=64,
-        n_epochs=10,
+        n_steps=128 * 12 // 6,
+        batch_size=128,
+        n_epochs=20,
         learning_rate=5e-4,
         gamma=0.8,
         verbose=2,
         tensorboard_log="highway_ppo/",
+        device="cuda",
     )
     reset_timesteps = True
 
@@ -56,7 +63,7 @@ checkpoint_callback = CheckpointCallback(
 )
 
 # Train the model
-model.learn(total_timesteps=int(2e4), callback=checkpoint_callback, reset_num_timesteps=reset_timesteps)
+model.learn(total_timesteps=int(5e4), callback=checkpoint_callback, reset_num_timesteps=reset_timesteps)
 
 # Save the final model
 model.save("models/first_model")

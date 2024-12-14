@@ -1,109 +1,131 @@
 import numpy as np
+import tensorflow as tf
 from highway_env.envs import HighwayEnvFast
-from highway_env.envs.common.action import Action
-
-# Updated reward parameters
-collision_penalty = -25.0
-speed_penalty_outside_range = -1.0
-rightmost_lane_reward = 0.01
-middle_lane_reward = 0.004
-leftmost_lane_penalty = 0.0
-unsafe_distance_penalty = -10.0
-off_road_penalty = -15.0
-safe_lane_change_reward = 5.0
-slowing_down_reward = 3.0
-passing_vehicle_reward = 7.0
-time_efficiency_reward = 1.0
-reward_min = -30.0
-reward_max = 15.0
 
 class HighwayEnvFastCustomReward(HighwayEnvFast):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lane_timer = 0  # Timer to track time in non-rightmost lanes
+        self.tensorboard_writer = tf.summary.create_file_writer("highway_tensorboard_logs")  # TensorBoard writer
+        self.step_counter = 0  # Step counter for logging
+
     def _reward(self, action: int) -> float:
         reward = 0.0
-        speed = self.vehicle.speed
 
         # Collision Penalty
-        reward += self._collision_penalty()
+        collision_penalty = -50.0 if self.vehicle.crashed else 0.0
+
+        # Lane Reward
+        lane_index = self.vehicle.lane_index[2] if self.vehicle.lane_index else None
+        rightmost_lane = self.config["lanes_count"] - 1
+
+        if lane_index == rightmost_lane:
+            lane_reward = 0.8
+            self.lane_timer = 0
+        else:
+            self.lane_timer += 1
+            lane_reward = 0.5 if self._is_overtaking_possible() else -0.3 * self.lane_timer
 
         # Speed Reward
-        reward += self._speed_reward(speed)
-
-        # Lane Preference Reward
-        if self.vehicle.lane_index is not None:
-            lane_index = self.vehicle.lane_index[2]
-            reward += self._lane_reward(lane_index)
-
-        # Surroundings and Lane Change Evaluation
-        reward += self._evaluate_surroundings(action)
-
-        # Off-road Penalty
-        if not self.vehicle.on_road:
-            reward += off_road_penalty
-
-        # Time Efficiency Reward
-        reward += self._time_efficiency_reward()
-
-        # Clip the reward
-        reward = np.clip(reward, reward_min, reward_max)
-
-        # Debugging logs
-        self._log_reward_components(reward)
-
-        return reward
-
-    def _collision_penalty(self):
-        if self.vehicle.crashed:
-            collision_speed_penalty = collision_penalty * (self.vehicle.speed / self.config["reward_speed_range"][1])
-            return collision_speed_penalty
-        return 0.0
-
-    def _speed_reward(self, speed):
         min_speed, max_speed = self.config["reward_speed_range"]
-        if min_speed <= speed <= max_speed:
-            return (speed - min_speed) / (max_speed - min_speed)
-        return speed_penalty_outside_range
+        scaled_speed = max(0, min(1, (self.vehicle.speed - min_speed) / (max_speed - min_speed)))
+        speed_reward = 0.5 * scaled_speed
 
-    def _lane_reward(self, lane_index):
-        if lane_index == 0:
-            return rightmost_lane_reward
-        elif lane_index == 1:
-            return middle_lane_reward
-        return leftmost_lane_penalty
+        # Smooth Speed Transition Penalty
+        speed_change_penalty = -abs(self.vehicle.speed - getattr(self, 'previous_speed', self.vehicle.speed)) * 0.05
+        self.previous_speed = self.vehicle.speed
 
-    def _evaluate_surroundings(self, action):
-        reward = 0.0
-        for neighbor in self.vehicle.road.vehicles:
-            if neighbor is not self.vehicle:
-                distance = np.linalg.norm(self.vehicle.position - neighbor.position)
-                same_lane = neighbor.lane_index[2] == self.vehicle.lane_index[2]
+        # Overtaking Reward
+        overtaking_reward = sum(
+            5.0 for vehicle in self.road.vehicles
+            if vehicle != self.vehicle and vehicle.position[0] < self.vehicle.position[0]
+            and abs(vehicle.position[1] - self.vehicle.position[1]) < 2
+        )
 
-                # Unsafe Distance Penalty
-                if distance < self.config["ego_spacing"]:
-                    reward += unsafe_distance_penalty
-                    # Reward slowing down to avoid a collision
-                    if same_lane and self.vehicle.speed > neighbor.speed:
-                        reward += slowing_down_reward
+        # Lane Change Reward
+        lane_change_reward = 2.0 if action in [1, 2] and self._is_overtaking_possible() else -0.2
 
-                # Safe Lane Change Reward
-                if action in [1, 2]:  # Lane changes
-                    if not same_lane or distance >= self.config["ego_spacing"]:
-                        reward += safe_lane_change_reward
+        # Awareness Penalty
+        awareness_penalty = -0.5 if self._is_vehicle_changing_lane() else 0.0
 
-                # Passing Vehicle Reward
-                if not same_lane and self.vehicle.position[0] > neighbor.position[0] and abs(distance) > self.config["ego_spacing"]:
-                    reward += passing_vehicle_reward
-        return reward
+        # Promising Lane Penalty
+        promising_lane_penalty = -0.3 if lane_index != rightmost_lane and not self._is_overtaking_possible() else 0.0
 
-    def _time_efficiency_reward(self):
-        return time_efficiency_reward * (1.0 - (self.time / self.config["duration"]))
+        # Returning Penalty
+        returning_penalty = -0.5 if lane_index != rightmost_lane and self.lane_timer > 5 else 0
 
-    def _log_reward_components(self, reward):
-        self.reward_log = {
-            "collision_penalty": self._collision_penalty(),
-            "speed_reward": self._speed_reward(self.vehicle.speed),
-            "lane_reward": self._lane_reward(self.vehicle.lane_index[2] if self.vehicle.lane_index else None),
-            "off_road_penalty": off_road_penalty if not self.vehicle.on_road else 0.0,
-            "time_efficiency_reward": self._time_efficiency_reward(),
-            "total_reward": reward,
-        }
-        print(self.reward_log)
+        # Combine Rewards
+        reward += (
+                collision_penalty
+                + lane_reward
+                + speed_reward
+                + overtaking_reward
+                + lane_change_reward
+                + returning_penalty
+                + awareness_penalty
+                + promising_lane_penalty
+                + speed_change_penalty
+        )
+
+        # Normalize reward
+        total_reward = np.clip(reward, -150.0, 50.0)
+
+        # Log reward components to TensorBoard
+        self._log_to_tensorboard(
+            collision_penalty, speed_reward, lane_reward, overtaking_reward,
+            lane_change_reward, returning_penalty, awareness_penalty,
+            promising_lane_penalty, speed_change_penalty, total_reward
+        )
+
+        return total_reward
+
+    def _log_to_tensorboard(self, collision, speed, lane, overtaking, lane_change,
+                            returning_penalty, awareness_penalty, promising_lane_penalty,
+                            speed_change_penalty, total_reward):
+        self.step_counter += 1
+        with self.tensorboard_writer.as_default():
+            tf.summary.scalar("Reward/Collision", collision, step=self.step_counter)
+            tf.summary.scalar("Reward/Speed", speed, step=self.step_counter)
+            tf.summary.scalar("Reward/Lane", lane, step=self.step_counter)
+            tf.summary.scalar("Reward/Overtaking", overtaking, step=self.step_counter)
+            tf.summary.scalar("Reward/Lane Change", lane_change, step=self.step_counter)
+            tf.summary.scalar("Reward/Returning Penalty", returning_penalty, step=self.step_counter)
+            tf.summary.scalar("Reward/Awareness Penalty", awareness_penalty, step=self.step_counter)
+            tf.summary.scalar("Reward/Promising Lane Penalty", promising_lane_penalty, step=self.step_counter)
+            tf.summary.scalar("Reward/Speed Change Penalty", speed_change_penalty, step=self.step_counter)
+            tf.summary.scalar("Reward/Total", total_reward, step=self.step_counter)
+        self.tensorboard_writer.flush()
+
+    def _is_car_close(self) -> bool:
+        """Check if there is a car close in the same lane."""
+        for vehicle in self.road.vehicles:
+            if (
+                    vehicle != self.vehicle
+                    and abs(vehicle.position[1] - self.vehicle.position[1]) < 1  # Same lane
+                    and 0 < (vehicle.position[0] - self.vehicle.position[0]) < 5  # Within 5 units ahead
+            ):
+                return True
+        return False
+
+    def _is_overtaking_possible(self) -> bool:
+        """Check if overtaking is a viable option."""
+        for vehicle in self.road.vehicles:
+            if (
+                    vehicle != self.vehicle
+                    and abs(vehicle.position[1] - self.vehicle.position[1]) < 2  # Close to lane
+                    and 0 < (vehicle.position[0] - self.vehicle.position[0]) < 5  # Within overtaking range
+            ):
+                return True
+        return False
+
+    def _is_vehicle_changing_lane(self) -> bool:
+        """Check if a nearby vehicle is changing lanes."""
+        for vehicle in self.road.vehicles:
+            if (
+                    vehicle != self.vehicle
+                    and abs(vehicle.position[1] - self.vehicle.position[1]) < 2  # Nearby in adjacent lanes
+                    and 0 < abs(vehicle.position[0] - self.vehicle.position[0]) < 5  # Within a buffer zone
+            ):
+                if abs(vehicle.velocity[1]) > 0.5:  # Threshold for lateral velocity
+                    return True
+        return False
