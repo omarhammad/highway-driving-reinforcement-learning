@@ -1,11 +1,11 @@
+import os
 import pprint
+
 import gymnasium
+import torch
 from gymnasium.envs.registration import register
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
-import os
-import time
-import torch
 
 # Check GPU availability
 print(f"Using device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
