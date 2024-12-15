@@ -26,7 +26,8 @@ env.unwrapped.config.update({
 
 pprint.pprint(env.unwrapped.config)
 # Load the trained PPO model
-model = PPO.load("./logs/rl_model_ppo_1000_steps.zip")  # Adjust path if needed
+#./logs/rl_model_ppo_40000_steps.zip
+model = PPO.load("models/first_model")
 
 # Run the evaluation for a limited number of episodes
 episode_count = 10
