@@ -1,6 +1,7 @@
+import pprint
 import gymnasium
-from stable_baselines3 import PPO
 from gymnasium.envs.registration import register
+from stable_baselines3 import PPO
 
 # Register the custom environment
 register(
@@ -8,23 +9,30 @@ register(
     entry_point='test_reward:HighwayEnvFastCustomReward',  # Path to the reward.py file
 )
 
-# Load the environment and model
-env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
-
-# Configure the environment for longer episodes and more vehicles
-env.unwrapped.config.update({
-    "lanes_count": 4,  # Set to 4 lanes
-    "vehicles_count": 70,  # Increase vehicles to 70
+# Configure environment settings to match training configuration
+env_config = {
+    "lanes_count": 4,  # 4 lanes
+    "vehicles_count": 70,  # Increased complexity
     "controlled_vehicles": 1,
-    "reward_speed_range": [35, 41],  # Speed range for high-speed rewards
-    "duration": 1000,  # Increased duration for longer episodes
-})
+    "reward_speed_range": [30, 36],  # Speed range for high-speed rewards
+    "duration": 1000,  # Longer simulation duration
+    "action": {
+        "type": "DiscreteMetaAction"  # Simplifies actions into lane and speed control
+    }
+}
+
+# Create the evaluation environment (disable logging)
+env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
+env.unwrapped.config.update(env_config)
+env.unwrapped.log_rewards = False  # Explicitly disable logging
+
+pprint.pprint(env.unwrapped.config)
 
 # Load the pre-trained model
-model = PPO.load("models/ppo_highway_50000_steps.zip")
+model = PPO.load("models/ppo_highway_30000_steps.zip")  # Ensure correct saved model file name
 
 # Function to evaluate the model
-def evaluate_model(env, model, num_episodes=10):  # Increased number of episodes for long-term evaluation
+def evaluate_model(env, model, num_episodes=10):
     total_rewards = []
     episode_lengths = []
 
@@ -52,7 +60,7 @@ def evaluate_model(env, model, num_episodes=10):  # Increased number of episodes
     print(f"Average Episode Length: {sum(episode_lengths) / len(episode_lengths):.2f}")
 
 # Evaluate the model
-evaluate_model(env, model, num_episodes=50)  # Run for more episodes, or adjust as needed
+evaluate_model(env, model, num_episodes=10)
 
 # Close the environment
 env.close()

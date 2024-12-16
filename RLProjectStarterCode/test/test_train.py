@@ -27,7 +27,7 @@ env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
 # Configure the environment
 env.unwrapped.config.update({
     "lanes_count": 4,  # 4 lanes
-    "vehicles_count": 70,  # Increased complexity
+    "vehicles_count": 60,  # Increased complexity
     "controlled_vehicles": 1,
     "reward_speed_range": [30, 36],  # Speed range for high-speed rewards
     "duration": 1000,  # Longer simulation duration
