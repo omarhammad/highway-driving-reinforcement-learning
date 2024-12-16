@@ -64,6 +64,8 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
             penalty = abs(speed - SPEED_RANGE[1]) / SPEED_RANGE[1]  # Scaled penalty for exceeding range
             speed_reward = -penalty * W_SPEED
 
+        print(speed_reward)
+
         # Detect slow cars
         close_vehicles = vehicle.road.close_vehicles_to(vehicle, distance=SLOW_CAR_DISTANCE)
         front_vehicle = None

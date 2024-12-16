@@ -12,7 +12,7 @@ register(
 # Configure environment settings to match training configuration
 env_config = {
     "lanes_count": 4,  # 4 lanes
-    "vehicles_count": 70,  # Increased complexity
+    "vehicles_count": 60,  # Increased complexity
     "controlled_vehicles": 1,
     "reward_speed_range": [30, 36],  # Speed range for high-speed rewards
     "duration": 1000,  # Longer simulation duration
@@ -29,7 +29,8 @@ env.unwrapped.log_rewards = False  # Explicitly disable logging
 pprint.pprint(env.unwrapped.config)
 
 # Load the pre-trained model
-model = PPO.load("models/ppo_highway_30000_steps.zip")  # Ensure correct saved model file name
+model = PPO.load("results/ppo_highway_control_2.zip")  # Ensure correct saved model file name
+
 
 # Function to evaluate the model
 def evaluate_model(env, model, num_episodes=10):
@@ -58,6 +59,7 @@ def evaluate_model(env, model, num_episodes=10):
     print("\nEvaluation Summary:")
     print(f"Average Reward: {sum(total_rewards) / len(total_rewards):.2f}")
     print(f"Average Episode Length: {sum(episode_lengths) / len(episode_lengths):.2f}")
+
 
 # Evaluate the model
 evaluate_model(env, model, num_episodes=10)
