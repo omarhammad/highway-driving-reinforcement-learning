@@ -3,22 +3,22 @@ import tensorflow as tf
 from highway_env.envs import HighwayEnvFast
 
 # Reward Parameters
-COLLISION_PENALTY = -20.0          # Strong penalty for collisions
-RIGHTMOST_LANE_REWARD = 0.2        # Small reward for staying in the rightmost lane
-HIGH_SPEED_REWARD_WEIGHT = 1.0     # Moderate reward for maintaining target speed
-SPEED_RANGE = [30, 36]             # Speed range for high-speed rewards
-SLOW_CAR_PENALTY = -1.0            # Penalty for being stuck behind a slow car
-OVERTAKE_REWARD = 3.0              # Reward for successful overtaking
-RETURN_RIGHTMOST_REWARD = 0.5      # Reward for returning to rightmost lane after overtaking
-SLOW_CAR_DISTANCE = 5.0            # Distance threshold for detecting slow cars
+COLLISION_PENALTY = -20.0  # Strong penalty for collisions
+RIGHTMOST_LANE_REWARD = 0.3  # Small reward for staying in the rightmost lane
+HIGH_SPEED_REWARD_WEIGHT = 0.5  # Moderate reward for maintaining target speed
+SPEED_RANGE = [28, 34]  # Speed range for high-speed rewards
+SLOW_CAR_PENALTY = -2.5  # Penalty for being stuck behind a slow car
+OVERTAKE_REWARD = 2.5  # Reward for successful overtaking
+RETURN_RIGHTMOST_REWARD = 0.6  # Reward for returning to rightmost lane after overtaking
+SLOW_CAR_DISTANCE = 6.0  # Distance threshold for detecting slow cars
 
 # Reward Weights
-W_COLLISION = 1.2
+W_COLLISION = 1.5
 W_LANE = 0.8
-W_SPEED = 1.0
+W_SPEED = 1.2
 W_SLOW_CAR = 1.2
-W_OVERTAKE = 2.0
-W_RETURN_RIGHTMOST = 0.7
+W_OVERTAKE = 1.8
+W_RETURN_RIGHTMOST = 1.0
 
 
 class HighwayEnvFastCustomReward(HighwayEnvFast):
@@ -58,9 +58,11 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
 
         # High-speed reward (balanced with slow car logic)
         speed = vehicle.speed
-        scaled_speed = (speed - SPEED_RANGE[0]) / (SPEED_RANGE[1] - SPEED_RANGE[0])
-        scaled_speed = np.clip(scaled_speed, 0.0, 1.0)
-        speed_reward = scaled_speed * HIGH_SPEED_REWARD_WEIGHT * W_SPEED
+        if SPEED_RANGE[0] <= speed <= SPEED_RANGE[1]:
+            speed_reward = (1 - np.exp(-0.1 * (speed - SPEED_RANGE[0]))) * HIGH_SPEED_REWARD_WEIGHT * W_SPEED
+        else:
+            penalty = abs(speed - SPEED_RANGE[1]) / SPEED_RANGE[1]  # Scaled penalty for exceeding range
+            speed_reward = -penalty * W_SPEED
 
         # Detect slow cars
         close_vehicles = vehicle.road.close_vehicles_to(vehicle, distance=SLOW_CAR_DISTANCE)
