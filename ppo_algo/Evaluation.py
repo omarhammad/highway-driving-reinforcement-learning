@@ -6,21 +6,30 @@ from stable_baselines3 import PPO
 # Register the custom environment
 register(
     id='HighwayFastCustomReward-v0',
-    entry_point='test_reward:HighwayEnvFastCustomReward',  # Path to the reward.py file
+    entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',  # Path to the reward.py file
 )
+
+# register(
+#     id='HighwayFastDefault-v0',
+#     entry_point='highway_env.envs:HighwayEnvFast',
+# )
 
 # Configure environment settings to match training configuration
 env_config = {
-    "lanes_count": 4,  # 4 lanes
-    "vehicles_count": 60,  # Increased complexity
-    "controlled_vehicles": 1,
+    "lanes_count": 4,  # Number of lanes
+    "vehicles_count": 60,  # Traffic density
+    "controlled_vehicles": 1,  # Number of agent-controlled vehicles
     "reward_speed_range": [30, 36],  # Speed range for high-speed rewards
-    "duration": 1000,  # Longer simulation duration
+    "duration": 1000,  # Simulation duration
     "action": {
         "type": "DiscreteMetaAction"  # Simplifies actions into lane and speed control
+    },
+    "observation": {
+        "type": "Kinematics",
+        "features": ["x", "y", "vx", "vy", "heading"],  # Only supported features
+        "normalize": True
     }
 }
-
 # Create the evaluation environment (disable logging)
 env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
 env.unwrapped.config.update(env_config)
@@ -29,7 +38,7 @@ env.unwrapped.log_rewards = False  # Explicitly disable logging
 pprint.pprint(env.unwrapped.config)
 
 # Load the pre-trained model
-model = PPO.load("results/ppo_highway_control_2.zip")  # Ensure correct saved model file name
+model = PPO.load("models/ppo_highway_100000_steps.zip")  # Ensure correct saved model file name
 
 
 # Function to evaluate the model
