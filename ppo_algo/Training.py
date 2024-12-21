@@ -51,6 +51,7 @@ env.unwrapped.config.update({
     "offscreen_rendering": False  # No offscreen rendering
 })
 
+env.unwrapped.enable_logging()
 
 pprint.pprint(env.unwrapped.config)
 
@@ -60,11 +61,11 @@ model = PPO(
     env,
     verbose=1,
     gamma=0.997,  # Long-term discount factor
-    ent_coef=0.02,  # Entropy coefficient for exploration-exploitation balance
+    ent_coef=0.01,  # Entropy coefficient for exploration-exploitation balance
     learning_rate=lr_schedule,  # Dynamic learning rate
     n_steps=4096,  # Number of steps per update
     batch_size=256,  # Batch size for gradient updates
-    n_epochs=10,  # Number of optimization epochs per update
+    n_epochs=15,  # Number of optimization epochs per update
     tensorboard_log="./ppo_highway_logs/",  # TensorBoard log directory
     policy_kwargs=dict(net_arch=[256, 256])  # Neural network architecture
 )

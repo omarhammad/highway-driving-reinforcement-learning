@@ -9,36 +9,37 @@ register(
     entry_point='HighwayEnvCustomReward:HighwayEnvFastCustomReward',  # Path to the reward.py file
 )
 
-# register(
-#     id='HighwayFastDefault-v0',
-#     entry_point='highway_env.envs:HighwayEnvFast',
-# )
-
 # Configure environment settings to match training configuration
 env_config = {
-    "lanes_count": 4,  # Number of lanes
-    "vehicles_count": 60,  # Traffic density
-    "controlled_vehicles": 1,  # Number of agent-controlled vehicles
-    "reward_speed_range": [30, 36],  # Speed range for high-speed rewards
-    "duration": 1000,  # Simulation duration
     "action": {
         "type": "DiscreteMetaAction"  # Simplifies actions into lane and speed control
     },
     "observation": {
-        "type": "Kinematics",
-        "features": ["x", "y", "vx", "vy", "heading"],  # Only supported features
-        "normalize": True
-    }
+        "type": "Kinematics"  # Kinematic observations
+    },
+    "lanes_count": 4,  # Number of lanes
+    "vehicles_count": 60,  # Traffic density
+    "controlled_vehicles": 1,  # Number of agent-controlled vehicles
+    "reward_speed_range": [20, 30],  # Speed range for high-speed rewards
+    "duration": 1000,  # Simulation duration in seconds
+    "simulation_frequency": 15,  # Frequency of simulation in Hz
+    "policy_frequency": 1,  # Frequency of applying policy (agent's actions) in Hz
+    "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicle",  # Vehicle type
+    "scaling": 5.5,  # Scaling for rendering
+    "show_trajectories": False,  # Don't show the trajectories
+    "render_agent": True,  # Render the agent
+    "offscreen_rendering": False  # No offscreen rendering
 }
+
 # Create the evaluation environment (disable logging)
 env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
 env.unwrapped.config.update(env_config)
-env.unwrapped.log_rewards = False  # Explicitly disable logging
+env.unwrapped.disable_logging()
 
 pprint.pprint(env.unwrapped.config)
 
 # Load the pre-trained model
-model = PPO.load("models/ppo_highway_100000_steps.zip")  # Ensure correct saved model file name
+model = PPO.load("models/ppo_highway_120000_steps.zip")  # Ensure correct saved model file name
 
 
 # Function to evaluate the model
