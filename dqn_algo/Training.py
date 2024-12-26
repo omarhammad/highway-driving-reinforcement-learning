@@ -4,7 +4,11 @@ import gymnasium
 from gymnasium import register
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
+import torch
 
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 
 # Register the custom environment
 register(
@@ -13,7 +17,7 @@ register(
 )
 
 # Create the environment
-env = gymnasium.make("HighwayFastCustomReward-v0", render_mode="human")
+env = gymnasium.make("HighwayFastCustomReward-v0")
 
 # Configure the environment
 env.unwrapped.config.update({
@@ -42,6 +46,7 @@ model = DQN(
     target_update_interval=50,
     verbose=1,
     tensorboard_log="highway_dqn/",
+    device=device,
 )
 # Checkpoint Callback
 checkpoint_callback = CheckpointCallback(
@@ -52,7 +57,7 @@ checkpoint_callback = CheckpointCallback(
 model.learn(total_timesteps=int(2e4), callback=checkpoint_callback)
 
 # Save the final model
-model.save("highway_dqn/model")
+model.save("highway_dqn/model1")
 
 # Close the environment
 env.close()
