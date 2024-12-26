@@ -5,7 +5,7 @@ from highway_env.envs import HighwayEnvFast
 class HighwayEnvFastCustomReward(HighwayEnvFast):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.tensorboard_writer = tf.summary.create_file_writer("ppo_highway_logs/rewards")
+        self.tensorboard_writer = tf.summary.create_file_writer("ppo_highway_logs/rewards/1")
         self.step_counter = 0
         self.log_rewards = True
 

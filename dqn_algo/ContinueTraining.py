@@ -5,6 +5,32 @@ from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
 import torch
 import os
+from stable_baselines3.common.callbacks import BaseCallback
+
+
+class CustomCheckpointCallback(BaseCallback):
+    """
+    A custom callback that saves checkpoints with dynamic step-based naming.
+    """
+    def __init__(self, save_path, start_step, increment_step, verbose=0):
+        super().__init__(verbose)
+        self.save_path = save_path
+        self.current_step = start_step
+        self.increment_step = increment_step
+
+    def _on_step(self):
+        # Check if the current step is a multiple of the increment step
+        if self.n_calls % self.increment_step == 0:
+            checkpoint_file = os.path.join(
+                self.save_path,
+                f"rl_model_dqn_{self.current_step}_steps.zip"
+            )
+            self.model.save(checkpoint_file)
+            if self.verbose > 0:
+                print(f"Checkpoint saved at step: {self.current_step} Location: {checkpoint_file}")
+            self.current_step += self.increment_step
+        return True
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -32,8 +58,8 @@ env.unwrapped.config.update({
 pprint.pprint(env.unwrapped.config)
 
 # Check if a checkpoint exists
-checkpoint_dir = "./logs/history/speed_05_lane01_coll_04/"
-checkpoint_model_path = os.path.join(checkpoint_dir, "rl_model_dqn_20000_steps.zip")
+checkpoint_dir = "./logs/history/speed_05_lane01_coll_04/finetune"
+checkpoint_model_path = os.path.join(checkpoint_dir, "rl_model_dqn_40000_steps.zip")
 
 # If the model already exists, load it; otherwise, create a new model
 if os.path.exists(checkpoint_model_path):
@@ -58,18 +84,19 @@ else:
         device=device,
     )
 
-# Checkpoint Callback (save every 1000 steps, adjust save frequency)
-checkpoint_callback = CheckpointCallback(
-    save_freq=1000,
-    save_path=checkpoint_dir+"/finetune",
-    name_prefix="rl_model_dqn"
+# Initialize the custom checkpoint callback
+custom_checkpoint_callback = CustomCheckpointCallback(
+    save_path=checkpoint_dir,
+    start_step=41000,
+    increment_step=1000,
+    verbose=1,
 )
 
 # Train the model (additional 20,000 steps)
-model.learn(total_timesteps=int(20000), callback=checkpoint_callback)
+model.learn(total_timesteps=int(20000), callback=custom_checkpoint_callback)
 
 # Save the final model (with updated name reflecting 20000+ steps)
-model.save(os.path.join(checkpoint_dir+"/finetune", "rl_model_dqn_20000_steps"))
+model.save(os.path.join(checkpoint_dir, "rl_model_dqn_60000_steps"))
 
 # Close the environment
 env.close()
