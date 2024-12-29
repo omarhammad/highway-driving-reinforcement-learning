@@ -8,6 +8,9 @@ class HighwayEnvFastCustomReward(HighwayEnvFast):
         self.tensorboard_writer = tf.summary.create_file_writer("ppo_highway_logs/rewards/1")
         self.step_counter = 0
         self.log_rewards = True
+        self.collision_reward = -0.4
+        self.high_speed_reward = 0.5
+        self.lane_reward = 0.1
 
     def reset(self, **kwargs):
         self.timestep = 0

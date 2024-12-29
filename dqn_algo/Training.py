@@ -19,6 +19,15 @@ register(
 # Create the environment
 env = gymnasium.make("HighwayFastCustomReward-v0")
 
+# # Register the default highway environment
+# register(
+#     id='HighwayFastDefault-v0',
+#     entry_point='highway_env.envs:HighwayEnv',
+# )
+#
+# # Create the environment
+# env = gymnasium.make("HighwayFastDefault-v0")
+
 # Configure the environment
 env.unwrapped.config.update({
     "lanes_count": 4,  # Number of lanes
@@ -45,19 +54,19 @@ model = DQN(
     gradient_steps=1,
     target_update_interval=50,
     verbose=1,
-    tensorboard_log="highway_dqn/",
+    tensorboard_log="highway_dqn/default",
     device=device,
 )
 # Checkpoint Callback
 checkpoint_callback = CheckpointCallback(
-    save_freq=1000, save_path="./logs/", name_prefix="rl_model_dqn"
+    save_freq=1000, save_path="./logs/history/default", name_prefix="rl_model_dqn"
 )
 
 # Train the model
-model.learn(total_timesteps=int(2e4), callback=checkpoint_callback)
+model.learn(total_timesteps=int(60000), callback=checkpoint_callback)
 
 # Save the final model
-model.save("highway_dqn/model1")
+model.save("highway_dqn/model_default")
 
 # Close the environment
 env.close()
