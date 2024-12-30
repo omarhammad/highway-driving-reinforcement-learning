@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-<<<<<<< HEAD
-      <module fileurl="file://$PROJECT_DIR$/.idea/selfdrivingcar.iml" filepath="$PROJECT_DIR$/.idea/selfdrivingcar.iml" />
-=======
       <module fileurl="file://$PROJECT_DIR$/.idea/selfdrivingcar-main.iml" filepath="$PROJECT_DIR$/.idea/selfdrivingcar-main.iml" />
->>>>>>> dqn_hamed
     </modules>
   </component>
 </project>
