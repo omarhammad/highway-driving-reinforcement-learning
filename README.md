@@ -1,88 +1,44 @@
-### **Phase 1: Preparation**
-1. **Understand the Environment**:
-    - Read the HighwayEnv documentation [here](https://highway-env.farama.org).
-    - Explore the `highway-fast-v0` default reward structure and its mechanics.
+# Highway Driving with Deep Reinforcement Learning
 
-2. **Set Up the Development Environment**:
-    - Install required libraries, e.g., Stable Baselines 3 and HighwayEnv.
-    - Set up Google Colab for GPU access or configure a local GPU-enabled environment.
+A simulation-based reinforcement learning project that trains agents to drive in `highway-env`. The repository explores Deep Q-Network (DQN) and Proximal Policy Optimization (PPO), custom reward functions, denser traffic scenarios, saved checkpoints, and evaluation runs.
 
-3. **Plan and Document**:
-    - Define project goals, objectives, and deliverables.
-    - Create a project timeline with key milestones.
+**Scope:** simulated highway driving. This project does not control a real vehicle.
 
----
+## Project overview
 
-### **Phase 2: Custom Reward Engineering**
-4. **Analyze Default Rewards**:
-    - Test the default reward system and document shortcomings (e.g., insufficient penalties for collisions).
+The agent observes a highway scenario and selects driving actions through the Gymnasium-compatible `highway-env` environment. The experiments change traffic and road settings, shape rewards for driving behavior, train DQN or PPO policies with Stable-Baselines3, and inspect training logs and simulated episodes.
 
-5. **Design Custom Rewards**:
-    - Define desired behaviors such as safety, efficiency, or speed.
-    - Design reward functions to promote these behaviors (e.g., high rewards for lane changes or avoiding collisions).
+| Experiment | Focus |
+| --- | --- |
+| DQN | Training, checkpoints, custom rewards, and evaluation in modified highway scenarios. |
+| PPO | Training and evaluation with a custom reward and configured action/observation spaces. |
+| Environment comparison | Notebook experiments comparing reward or environment configurations. |
 
-6. **Implement the Reward Function**:
-    - Modify the environment to include your custom reward function.
-    - Verify its behavior with test runs.
+## Reward design and evaluation
 
----
+The custom environment subclasses `HighwayEnvFast` and defines reward components for combinations of collision avoidance, speed, lane position, and, in one DQN variant, overtaking. Reward components are written to TensorBoard summaries. The training scripts save model checkpoints at regular intervals.
 
-### **Phase 3: Training and Comparison**
-7. **Train DRL Algorithms**:
-    - Select at least two algorithms (e.g., DQN, PPO).
-    - Train the agents using the default reward and custom reward functions.
+Evaluation scripts load saved policies and run simulated episodes. The PPO evaluation reports average episode reward and length over ten episodes. The repository includes training logs and checkpoints, but does not provide one standardized benchmark comparing every experiment.
 
-8. **Evaluate Performance**:
-    - Use metrics like average return, collisions avoided, and time spent to evaluate agents.
-    - Save training checkpoints for analysis.
+## Repository structure
 
-9. **Compare Algorithms**:
-    - Analyze strengths and weaknesses of each algorithm based on performance metrics.
+| Path | Contents |
+| --- | --- |
+| [`dqn_algo_hamed/`](dqn_algo_hamed/) | DQN training/evaluation scripts, custom reward, checkpoints, and logs. |
+| [`dqn_algo_margarita/`](dqn_algo_margarita/) | DQN environment comparisons, training variations, evaluation, checkpoints, and logs. |
+| [`ppo_algo/`](ppo_algo/) | PPO custom reward, training, evaluation, and related outputs. |
 
----
+The folder names are preserved from the source repository.
 
-### **Phase 4: Environment Enhancement**
-10. **Enhance Environment Complexity**:
-    - Identify variables to increase complexity (e.g., traffic density, lane width).
-    - Modify the environment or use a predefined complex scenario.
+## Technology
 
-11. **Test Agents in Enhanced Environment**:
-    - Test previously trained agents in the more complex environment.
-    - Retrain and fine-tune agents for better performance.
+Python · Gymnasium · highway-env · Stable-Baselines3 · PyTorch · TensorBoard · TensorFlow summaries · Jupyter
 
----
+## Running an experiment
 
-### **Phase 5: Extensions (Optional)**
-12. **Explore Other Algorithms**:
-    - Experiment with algorithms like TD3, SAC, or custom implementations.
+1. Set up a Python environment with `gymnasium`, `highway-env`, `stable-baselines3`, `torch`, `tensorboard`, and `tensorflow`. Jupyter is needed for the notebooks.
+2. Work from the relevant algorithm folder so the local custom environment module and relative paths resolve.
+3. Review the environment configuration and checkpoint paths in its `Training.py` or `Evaluation.py` before running. Some paths are specific to the original development machine and must be changed.
+4. Train a policy or point the evaluation script to an available checkpoint. Review logs with TensorBoard.
 
-13. **Modify Action/Observation Spaces**:
-    - Adjust the environment's action or observation spaces.
-    - Evaluate the impact on agent performance.
-
----
-
-### **Phase 6: Analysis and Documentation**
-14. **Visualize Results**:
-    - Use Tensorboard or other tools to create training curves and performance graphs.
-    - Record agent behaviors with animations for documentation.
-
-15. **Write a Comparative Analysis**:
-    - Document the strengths and weaknesses of algorithms, reward functions, and environment setups.
-
-16. **Discuss Challenges and Solutions**:
-    - Note difficulties encountered during the project and how they were resolved.
-
----
-
-### **Phase 7: Final Deliverables**
-17. **Prepare Jupyter Notebooks**:
-    - Include sections for the introduction, methodology, results, analysis, and discussion.
-    - Ensure all code cells are executed and error-free.
-
-18. **Organize Code**:
-    - Modularize your code (e.g., utility scripts for reward functions, training, and evaluation).
-
-19. **Finalize and Submit**:
-    - Ensure compliance with submission guidelines (e.g., clear file naming, complete outputs).
-    - Submit the project via the designated platform.
+The archive does not include a pinned dependency file or a single reproducible entry point. These scripts document experiments and may require path and environment adjustments on another machine.
